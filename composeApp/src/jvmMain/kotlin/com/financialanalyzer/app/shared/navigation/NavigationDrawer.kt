@@ -1,9 +1,16 @@
 package com.financialanalyzer.app.shared.navigation
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.financialanalyzer.app.shared.enums.NavigationItem
+import com.financialanalyzer.app.shared.theme.AppColors
 
 @Composable
 fun NavigationDrawer(
@@ -21,82 +29,135 @@ fun NavigationDrawer(
     onItemSelected: (NavigationItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isExpanded by remember { mutableStateOf(true) }
+    
+    val drawerWidth by animateDpAsState(
+        targetValue = if (isExpanded) 240.dp else 72.dp,
+        animationSpec = tween(400), // Aumentado para transição mais suave
+        label = "drawer_width"
+    )
+
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .width(240.dp)
-            .background(MaterialTheme.colorScheme.surface)
+            .width(drawerWidth)
+            .background(AppColors.DarkSurface) // Sempre preto, independente do tema
             .padding(16.dp)
     ) {
-        // Header do app
-        Text(
-            text = "Financial Analyzer",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        // Header com toggle
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            contentAlignment = if (isExpanded) Alignment.CenterStart else Alignment.Center
+        ) {
+            IconButton(
+                onClick = { isExpanded = !isExpanded },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = "Toggle menu",
+                    tint = AppColors.DarkOnSurfaceVariant, // Sempre cor escura
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
         // Items de navegação
         NavigationItem.values().forEach { item ->
             NavigationDrawerItem(
                 item = item,
                 isSelected = selectedItem == item,
+                isExpanded = isExpanded,
                 onClick = { onItemSelected(item) },
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier.padding(vertical = 2.dp)
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun NavigationDrawerItem(
     item: NavigationItem,
     isSelected: Boolean,
+    isExpanded: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor = if (isSelected) {
-        MaterialTheme.colorScheme.primaryContainer
+        AppColors.DarkSurfaceVariant // Sempre cor escura para seleção
     } else {
         Color.Transparent
     }
 
     val contentColor = if (isSelected) {
-        MaterialTheme.colorScheme.onPrimaryContainer
+        AppColors.DarkOnSurface // Sempre cor escura para texto
     } else {
-        MaterialTheme.colorScheme.onSurface
+        AppColors.DarkOnSurfaceVariant // Sempre cor escura para texto secundário
     }
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(backgroundColor)
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .then(
-                if (!isSelected) {
-                    Modifier.clickable { onClick() }
-                } else {
-                    Modifier
-                }
+            .clickable { onClick() }
+            .padding(
+                horizontal = if (isExpanded) 12.dp else 0.dp,
+                vertical = 10.dp
             ),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (isExpanded) Arrangement.Start else Arrangement.Center
     ) {
-        Icon(
-            imageVector = item.icon,
-            contentDescription = item.title,
-            tint = contentColor,
-            modifier = Modifier.size(24.dp)
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Text(
-            text = item.title,
-            color = contentColor,
-            fontSize = 16.sp,
-            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
-        )
+        // Ícone sempre presente
+        val iconContent = @Composable {
+            Icon(
+                imageVector = item.icon,
+                contentDescription = item.title,
+                tint = contentColor,
+                modifier = Modifier.size(24.dp) // Aumentado de 20dp para 24dp
+            )
+        }
+        
+        // Ícone sempre presente
+        if (isExpanded) {
+            iconContent()
+        } else {
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = {
+                    PlainTooltip {
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
+                state = rememberTooltipState()
+            ) {
+                iconContent()
+            }
+        }
+        
+        // Texto com animação suave
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(200))
+        ) {
+            Row {
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Text(
+                    text = item.title,
+                    color = contentColor,
+                    fontSize = 14.sp,
+                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                    maxLines = 1
+                )
+            }
+        }
     }
 }

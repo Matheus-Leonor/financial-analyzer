@@ -28,7 +28,8 @@ fun DashboardScreen(
             text = "Dashboard",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier.padding(bottom = 32.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         // Upload Area
@@ -71,9 +72,9 @@ private fun FileUploadArea(
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-        )
+//        colors = CardDefaults.cardColors(
+//            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+//        )
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
