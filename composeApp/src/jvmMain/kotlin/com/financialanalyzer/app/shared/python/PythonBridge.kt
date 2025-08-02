@@ -17,12 +17,57 @@ import java.util.UUID
 class PythonBridge {
     
     private val pythonExecutable = "python" // ou caminho específico se necessário
-    private val baseDir = File(System.getProperty("user.dir"))
+    private val baseDir = findProjectRoot()
     private val pythonEngineDir = File(baseDir, "python-engine")
     private val sharedDataDir = File(baseDir, "shared-data")
     private val inputDir = File(sharedDataDir, "input")
     private val outputDir = File(sharedDataDir, "output")
     private val tempDir = File(sharedDataDir, "temp")
+    
+    /**
+     * Encontra a raiz do projeto, mesmo quando executado de subdiretórios
+     */
+    private fun findProjectRoot(): File {
+        var current = File(System.getProperty("user.dir"))
+        
+        // Se estivermos em composeApp/, suba um nível
+        if (current.name == "composeApp") {
+            current = current.parentFile
+        }
+        
+        // Procura pela pasta python-engine para confirmar que estamos na raiz
+        var attempts = 0
+        val maxAttempts = 5
+        
+        while (current != null && attempts < maxAttempts) {
+            val pythonEngineDir = File(current, "python-engine")
+            val apiScript = File(pythonEngineDir, "api_bridge.py")
+            
+            if (pythonEngineDir.exists() && apiScript.exists()) {
+                return current
+            }
+            
+            current = current.parentFile
+            attempts++
+        }
+        
+        // Se não encontrou, tentar caminho direto baseado no working directory
+        val fallback = File(System.getProperty("user.dir"))
+        val fallbackEngine = File(fallback, "python-engine")
+        
+        if (!fallbackEngine.exists()) {
+            // Último recurso: procurar na pasta pai do working directory
+            val parentFallback = fallback.parentFile
+            if (parentFallback != null) {
+                val parentEngine = File(parentFallback, "python-engine")
+                if (parentEngine.exists()) {
+                    return parentFallback
+                }
+            }
+        }
+        
+        return fallback
+    }
     
     private val json = Json { 
         ignoreUnknownKeys = true
@@ -30,10 +75,18 @@ class PythonBridge {
     }
     
     init {
+        // Debug: mostrar caminhos
+        println("PythonBridge Debug:")
+        println("   Working Dir: ${System.getProperty("user.dir")}")
+        println("   Project Root: ${baseDir.absolutePath}")
+        println("   Python Engine: ${pythonEngineDir.absolutePath}")
+        println("   Python Engine exists: ${pythonEngineDir.exists()}")
+        
         // Criar diretórios se não existirem
         listOf(inputDir, outputDir, tempDir).forEach { dir ->
             if (!dir.exists()) {
                 dir.mkdirs()
+                println("   Created dir: ${dir.absolutePath}")
             }
         }
     }
@@ -176,6 +229,30 @@ class PythonBridge {
      */
     suspend fun checkPythonSetup(): SetupStatus = withContext(Dispatchers.IO) {
         try {
+            // Verificar se os arquivos necessários existem
+            val apiScript = File(pythonEngineDir, "api_bridge.py")
+            val testScript = File(pythonEngineDir, "test_install.py")
+            
+            println("Checking Python setup:")
+            println("   api_bridge.py exists: ${apiScript.exists()}")
+            println("   test_install.py exists: ${testScript.exists()}")
+            
+            if (!apiScript.exists()) {
+                return@withContext SetupStatus(
+                    available = false,
+                    pythonVersion = null,
+                    message = "api_bridge.py não encontrado em ${pythonEngineDir.absolutePath}"
+                )
+            }
+            
+            if (!testScript.exists()) {
+                return@withContext SetupStatus(
+                    available = false,
+                    pythonVersion = null,
+                    message = "test_install.py não encontrado em ${pythonEngineDir.absolutePath}"
+                )
+            }
+            
             // Testar execução básica do Python
             val result = executePythonScript("test_install.py")
             
