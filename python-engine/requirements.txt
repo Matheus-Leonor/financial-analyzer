@@ -1,0 +1,22 @@
+# Core dependencies
+pandas
+numpy
+openpyxl
+
+# PDF processing
+PyPDF2
+pdfplumber
+
+# AI and LangChain with Anthropic Claude
+langchain
+langchain-anthropic
+anthropic
+
+# Chart generation
+matplotlib
+seaborn
+plotly
+
+# Additional utilities
+python-dotenv
+requests

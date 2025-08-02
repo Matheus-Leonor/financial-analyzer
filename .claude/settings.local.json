@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -m pip install:*)",
+      "Bash(venv_intellij\\Scripts\\activate:*)",
+      "Bash(pip install:*)",
+      "Bash(git add:*)",
+      "Bash(dir:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
