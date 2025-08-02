@@ -161,6 +161,26 @@ def process_kotlin_request(request_file: str, response_file: str):
                 # Process chat message
                 chat_result = bridge.process_chat(message)
                 
+                # Extract and clean the response message
+                raw_response = chat_result.get("response", "")
+                
+                # Handle different response formats from Claude
+                if isinstance(raw_response, list):
+                    # If response is a list of message objects, extract text
+                    cleaned_message = ""
+                    for item in raw_response:
+                        if isinstance(item, dict) and "text" in item:
+                            cleaned_message += item["text"]
+                        elif isinstance(item, str):
+                            cleaned_message += item
+                    response_message = cleaned_message
+                elif isinstance(raw_response, dict):
+                    # If response is a dict, try to extract text field
+                    response_message = raw_response.get("text", str(raw_response))
+                else:
+                    # If response is already a string, use as-is
+                    response_message = str(raw_response)
+                
                 # Check if response should include table formatting
                 should_format_table = any(keyword in message.lower() for keyword in [
                     'tabela', 'relatório', 'compare', 'mostre dados', 'gere uma', 'liste', 'breakdown'
@@ -174,7 +194,7 @@ def process_kotlin_request(request_file: str, response_file: str):
                 response = {
                     "id": request_id,
                     "status": chat_result["status"],
-                    "message": chat_result.get("response", ""),
+                    "message": response_message,
                     "tableData": table_data,
                     "charts": chat_result.get("charts", []),
                     "error": chat_result.get("error")
