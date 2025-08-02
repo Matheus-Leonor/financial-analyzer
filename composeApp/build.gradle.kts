@@ -21,6 +21,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("androidx.collection:collection:1.4.0")
+            implementation(compose.materialIconsExtended)  // ← ESTA!
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
