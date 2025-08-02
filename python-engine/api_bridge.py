@@ -132,7 +132,7 @@ def process_kotlin_request(request_file: str, response_file: str):
                             response = {
                                 "id": request_id,
                                 "status": "success", 
-                                "message": f"✅ Dados carregados com sucesso!\n\n**Arquivo:** {file_data.get('name', 'Unknown')}\n**Linhas:** {df.shape[0]}\n**Colunas:** {df.shape[1]}\n\n{load_result.get('message', '')}",
+                                "message": f"Dados carregados com sucesso!\n\n**Arquivo:** {file_data.get('name', 'Unknown')}\n**Linhas:** {df.shape[0]}\n**Colunas:** {df.shape[1]}\n\n{load_result.get('message', '')}",
                                 "tableData": table_markdown,
                                 "data": table_string
                             }
@@ -191,7 +191,7 @@ def process_kotlin_request(request_file: str, response_file: str):
         with open(response_file, 'w', encoding='utf-8') as f:
             json.dump(response, f, indent=2, ensure_ascii=False, default=str)
             
-        print(f"✅ Request {request_id} processed successfully")
+        print(f"Request {request_id} processed successfully")
         
     except Exception as e:
         # Error response
@@ -205,7 +205,7 @@ def process_kotlin_request(request_file: str, response_file: str):
         with open(response_file, 'w', encoding='utf-8') as f:
             json.dump(error_response, f, indent=2, ensure_ascii=False, default=str)
         
-        print(f"❌ Error processing request: {e}")
+        print(f"Error processing request: {e}")
 
 def main():
     """Main function - can handle both CLI and Kotlin JSON requests"""
