@@ -75,18 +75,10 @@ class PythonBridge {
     }
     
     init {
-        // Debug: mostrar caminhos
-        println("PythonBridge Debug:")
-        println("   Working Dir: ${System.getProperty("user.dir")}")
-        println("   Project Root: ${baseDir.absolutePath}")
-        println("   Python Engine: ${pythonEngineDir.absolutePath}")
-        println("   Python Engine exists: ${pythonEngineDir.exists()}")
-        
         // Criar diretórios se não existirem
         listOf(inputDir, outputDir, tempDir).forEach { dir ->
             if (!dir.exists()) {
                 dir.mkdirs()
-                println("   Created dir: ${dir.absolutePath}")
             }
         }
     }
@@ -233,9 +225,7 @@ class PythonBridge {
             val apiScript = File(pythonEngineDir, "api_bridge.py")
             val testScript = File(pythonEngineDir, "test_install.py")
             
-            println("Checking Python setup:")
-            println("   api_bridge.py exists: ${apiScript.exists()}")
-            println("   test_install.py exists: ${testScript.exists()}")
+            // Verificação silenciosa
             
             if (!apiScript.exists()) {
                 return@withContext SetupStatus(
