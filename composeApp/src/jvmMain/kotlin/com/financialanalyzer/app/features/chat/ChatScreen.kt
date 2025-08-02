@@ -23,13 +23,17 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontFamily
 import com.financialanalyzer.app.shared.theme.AppColors
+import com.financialanalyzer.app.shared.python.PythonBridge
 import kotlinx.coroutines.launch
 
 data class ChatMessage(
     val id: String,
     val content: String,
     val isFromUser: Boolean,
+    val tableData: String? = null, // Para exibir tabelas em markdown
+    val hasTable: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
 
@@ -40,9 +44,21 @@ fun ChatScreen(
     var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
     var inputText by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var connectionStatus by remember { mutableStateOf("Conectando...") }
     
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val pythonBridge = remember { PythonBridge() }
+    
+    // Verificar setup do Python na inicialização
+    LaunchedEffect(Unit) {
+        val setupStatus = pythonBridge.checkPythonSetup()
+        connectionStatus = if (setupStatus.available) {
+            "✅ Conectado ao Claude AI"
+        } else {
+            "❌ ${setupStatus.message}"
+        }
+    }
 
     // Auto-scroll para a última mensagem
     LaunchedEffect(messages.size) {
@@ -64,7 +80,18 @@ fun ChatScreen(
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        Text(
+            text = connectionStatus,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (connectionStatus.startsWith("✅")) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.error
+            },
+            modifier = Modifier.padding(bottom = 8.dp)
         )
         
         Text(
@@ -114,21 +141,43 @@ fun ChatScreen(
                     )
                     messages = messages + userMessage
                     
-                    // Simular resposta da IA (substituir por integração real)
+                    // Processar com agente Claude real
                     isLoading = true
                     val messageToSend = inputText.trim()
                     inputText = ""
                     
-                    // TODO: Integrar com python-engine
                     coroutineScope.launch {
-                        kotlinx.coroutines.delay(2000) // Simular delay da IA
-                        val aiResponse = ChatMessage(
-                            id = "ai_${System.currentTimeMillis()}",
-                            content = "I understand you want to: \"$messageToSend\". This feature will be connected to the Claude AI agent soon!",
-                            isFromUser = false
-                        )
-                        messages = messages + aiResponse
-                        isLoading = false
+                        try {
+                            // Chamar Python Bridge
+                            val response = pythonBridge.processChatMessage(messageToSend)
+                            
+                            val aiResponse = if (response.status == "success") {
+                                ChatMessage(
+                                    id = "ai_${System.currentTimeMillis()}",
+                                    content = response.message,
+                                    isFromUser = false,
+                                    tableData = response.tableData,
+                                    hasTable = !response.tableData.isNullOrBlank()
+                                )
+                            } else {
+                                ChatMessage(
+                                    id = "ai_${System.currentTimeMillis()}",
+                                    content = "❌ Erro: ${response.message}\n\n${response.error ?: ""}",
+                                    isFromUser = false
+                                )
+                            }
+                            
+                            messages = messages + aiResponse
+                        } catch (e: Exception) {
+                            val errorMessage = ChatMessage(
+                                id = "ai_${System.currentTimeMillis()}",
+                                content = "❌ Erro de conexão: ${e.message}\n\nVerifique se o Python está configurado e a API key do Claude está definida no arquivo .env",
+                                isFromUser = false
+                            )
+                            messages = messages + errorMessage
+                        } finally {
+                            isLoading = false
+                        }
                     }
                 }
             },
@@ -194,7 +243,7 @@ private fun ChatMessageItem(message: ChatMessage) {
         
         // Bolha da mensagem
         Card(
-            modifier = Modifier.widthIn(max = 320.dp),
+            modifier = Modifier.widthIn(max = if (message.hasTable) 600.dp else 320.dp),
             shape = RoundedCornerShape(
                 topStart = 16.dp,
                 topEnd = 16.dp,
@@ -209,16 +258,38 @@ private fun ChatMessageItem(message: ChatMessage) {
                 }
             )
         ) {
-            Text(
-                text = message.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (message.isFromUser) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.padding(12.dp)
-            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                // Texto da mensagem
+                Text(
+                    text = message.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (message.isFromUser) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+                
+                // Tabela em markdown (se houver)
+                if (message.hasTable && !message.tableData.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    ) {
+                        Text(
+                            text = message.tableData,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+            }
         }
         
         if (message.isFromUser) {

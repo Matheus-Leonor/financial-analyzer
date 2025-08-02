@@ -91,8 +91,132 @@ class FinancialAnalysisBridge:
         
         return output_path
 
+def process_kotlin_request(request_file: str, response_file: str):
+    """Process JSON request from Kotlin and save response"""
+    bridge = FinancialAnalysisBridge()
+    
+    try:
+        # Load request from JSON file
+        with open(request_file, 'r', encoding='utf-8') as f:
+            request_data = json.load(f)
+        
+        request_id = request_data.get('id', 'unknown')
+        request_type = request_data.get('type', 'chat')
+        message = request_data.get('message', '')
+        file_data = request_data.get('fileData')
+        
+        # Initialize agent
+        init_result = bridge.initialize_agent()
+        if init_result["status"] == "error":
+            response = {
+                "id": request_id,
+                "status": "error",
+                "message": "Failed to initialize agent",
+                "error": init_result["message"]
+            }
+        else:
+            # Process based on request type
+            if request_type == "load_data" and file_data:
+                # Load file first, then process message
+                file_path = file_data.get('path', '')
+                if file_path:
+                    load_result = bridge.agent.load_data(file_path)
+                    if load_result["status"] == "success":
+                        # Get data summary with pandas formatting
+                        summary = bridge.get_data_summary()
+                        if summary.get("loaded", False) and bridge.agent.chart_generator.current_data is not None:
+                            df = bridge.agent.chart_generator.current_data
+                            table_markdown = df.to_markdown(index=False)
+                            table_string = df.to_string(index=False)
+                            
+                            response = {
+                                "id": request_id,
+                                "status": "success", 
+                                "message": f"✅ Dados carregados com sucesso!\n\n**Arquivo:** {file_data.get('name', 'Unknown')}\n**Linhas:** {df.shape[0]}\n**Colunas:** {df.shape[1]}\n\n{load_result.get('message', '')}",
+                                "tableData": table_markdown,
+                                "data": table_string
+                            }
+                        else:
+                            response = {
+                                "id": request_id,
+                                "status": "error",
+                                "message": "Failed to load data",
+                                "error": load_result.get("message", "Unknown error")
+                            }
+                    else:
+                        response = {
+                            "id": request_id,
+                            "status": "error", 
+                            "message": "Failed to load file",
+                            "error": load_result.get("message", "Unknown error")
+                        }
+                else:
+                    response = {
+                        "id": request_id,
+                        "status": "error",
+                        "message": "File path not provided"
+                    }
+            
+            elif request_type == "chat":
+                # Process chat message
+                chat_result = bridge.process_chat(message)
+                
+                # Check if response should include table formatting
+                should_format_table = any(keyword in message.lower() for keyword in [
+                    'tabela', 'relatório', 'compare', 'mostre dados', 'gere uma', 'liste', 'breakdown'
+                ])
+                
+                table_data = None
+                if should_format_table and bridge.agent.chart_generator.current_data is not None:
+                    df = bridge.agent.chart_generator.current_data
+                    table_data = df.to_markdown(index=False)
+                
+                response = {
+                    "id": request_id,
+                    "status": chat_result["status"],
+                    "message": chat_result.get("response", ""),
+                    "tableData": table_data,
+                    "charts": chat_result.get("charts", []),
+                    "error": chat_result.get("error")
+                }
+            
+            else:
+                response = {
+                    "id": request_id,
+                    "status": "error",
+                    "message": f"Unknown request type: {request_type}"
+                }
+        
+        # Save response to file
+        with open(response_file, 'w', encoding='utf-8') as f:
+            json.dump(response, f, indent=2, ensure_ascii=False, default=str)
+            
+        print(f"✅ Request {request_id} processed successfully")
+        
+    except Exception as e:
+        # Error response
+        error_response = {
+            "id": request_data.get('id', 'unknown') if 'request_data' in locals() else 'unknown',
+            "status": "error",
+            "message": f"Bridge processing error: {str(e)}",
+            "error": str(e)
+        }
+        
+        with open(response_file, 'w', encoding='utf-8') as f:
+            json.dump(error_response, f, indent=2, ensure_ascii=False, default=str)
+        
+        print(f"❌ Error processing request: {e}")
+
 def main():
-    """Main function for command line usage"""
+    """Main function - can handle both CLI and Kotlin JSON requests"""
+    if len(sys.argv) == 3:
+        # Called from Kotlin with request/response file paths
+        request_file = sys.argv[1]
+        response_file = sys.argv[2]
+        process_kotlin_request(request_file, response_file)
+        return
+    
+    # Original CLI interface
     parser = argparse.ArgumentParser(description="Financial Analysis Bridge")
     parser.add_argument("command", choices=["init", "load", "chat", "summary", "history", "clear"])
     parser.add_argument("--file", help="File to load (for load command)")
