@@ -9,7 +9,10 @@
       "Bash(rm:*)",
       "Bash(./gradlew:*)",
       "Bash(ls:*)",
-      "Bash(python test:*)"
+      "Bash(python test:*)",
+      "Bash(where python)",
+      "Bash(C:UsersmatheAppDataLocalProgramsPythonPython313python.exe --version)",
+      "Bash(\"C:\\Users\\mathe\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" --version)"
     ],
     "deny": []
   }

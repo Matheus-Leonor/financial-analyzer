@@ -25,6 +25,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import com.financialanalyzer.app.shared.theme.AppColors
 import com.financialanalyzer.app.shared.python.PythonBridge
 import kotlinx.coroutines.launch
 
@@ -32,7 +36,7 @@ data class ChatMessage(
     val id: String,
     val content: String,
     val isFromUser: Boolean,
-    val tableData: String? = null,
+    val tableData: String? = null, // Para exibir tabelas em markdown
     val hasTable: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
@@ -136,61 +140,60 @@ fun ChatScreen(
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             ClaudeStyleInputArea(
-                inputText = inputText,
-                onInputChange = { inputText = it },
-                onSendMessage = {
-                    if (inputText.isNotBlank() && !isLoading) {
-                        // Adicionar mensagem do usuário
-                        val userMessage = ChatMessage(
-                            id = "user_${System.currentTimeMillis()}",
-                            content = inputText.trim(),
-                            isFromUser = true
-                        )
-                        messages = messages + userMessage
-                        
-                        // Processar com agente Claude real
-                        isLoading = true
-                        val messageToSend = inputText.trim()
-                        inputText = ""
-                        
-                        coroutineScope.launch {
-                            try {
-                                // Chamar Python Bridge
-                                val response = pythonBridge.processChatMessage(messageToSend)
-                                
-                                val aiResponse = if (response.status == "success") {
-                                    ChatMessage(
-                                        id = "ai_${System.currentTimeMillis()}",
-                                        content = response.message,
-                                        isFromUser = false,
-                                        tableData = response.tableData,
-                                        hasTable = !response.tableData.isNullOrBlank()
-                                    )
-                                } else {
-                                    ChatMessage(
-                                        id = "ai_${System.currentTimeMillis()}",
-                                        content = "Erro: ${response.message}\n\n${response.error ?: ""}",
-                                        isFromUser = false
-                                    )
-                                }
-                                
-                                messages = messages + aiResponse
-                            } catch (e: Exception) {
-                                val errorMessage = ChatMessage(
+            inputText = inputText,
+            onInputChange = { inputText = it },
+            onSendMessage = {
+                if (inputText.isNotBlank() && !isLoading) {
+                    // Adicionar mensagem do usuário
+                    val userMessage = ChatMessage(
+                        id = "user_${System.currentTimeMillis()}",
+                        content = inputText.trim(),
+                        isFromUser = true
+                    )
+                    messages = messages + userMessage
+                    
+                    // Processar com agente Claude real
+                    isLoading = true
+                    val messageToSend = inputText.trim()
+                    inputText = ""
+                    
+                    coroutineScope.launch {
+                        try {
+                            // Chamar Python Bridge
+                            val response = pythonBridge.processChatMessage(messageToSend)
+                            
+                            val aiResponse = if (response.status == "success") {
+                                ChatMessage(
                                     id = "ai_${System.currentTimeMillis()}",
-                                    content = "Erro de conexão: ${e.message}\n\nVerifique se o Python está configurado e a API key do Claude está definida no arquivo .env",
+                                    content = response.message,
+                                    isFromUser = false,
+                                    tableData = response.tableData,
+                                    hasTable = !response.tableData.isNullOrBlank()
+                                )
+                            } else {
+                                ChatMessage(
+                                    id = "ai_${System.currentTimeMillis()}",
+                                    content = "Erro: ${response.message}\n\n${response.error ?: ""}",
                                     isFromUser = false
                                 )
-                                messages = messages + errorMessage
-                            } finally {
-                                isLoading = false
                             }
+                            
+                            messages = messages + aiResponse
+                        } catch (e: Exception) {
+                            val errorMessage = ChatMessage(
+                                id = "ai_${System.currentTimeMillis()}",
+                                content = "Erro de conexão: ${e.message}\n\nVerifique se o Python está configurado e a API key do Claude está definida no arquivo .env",
+                                isFromUser = false
+                            )
+                            messages = messages + errorMessage
+                        } finally {
+                            isLoading = false
                         }
                     }
-                },
-                isLoading = isLoading
-            )
-        }
+                }
+            },
+            isLoading = isLoading
+        )
     }
 }
 

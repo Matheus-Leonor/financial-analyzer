@@ -16,13 +16,49 @@ import java.util.UUID
  */
 class PythonBridge {
     
-    private val pythonExecutable = "python" // ou caminho específico se necessário
+    private val pythonExecutable = findPythonExecutable()
     private val baseDir = findProjectRoot()
     private val pythonEngineDir = File(baseDir, "python-engine")
     private val sharedDataDir = File(baseDir, "shared-data")
     private val inputDir = File(sharedDataDir, "input")
     private val outputDir = File(sharedDataDir, "output")
     private val tempDir = File(sharedDataDir, "temp")
+    
+    /**
+     * Encontra o executável Python correto no sistema
+     */
+    private fun findPythonExecutable(): String {
+        val possiblePaths = listOf(
+            // Caminho específico para este usuário (encontrado via 'where python')
+            "C:\\Users\\${System.getProperty("user.name")}\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+            "C:\\Users\\${System.getProperty("user.name")}\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+            "C:\\Users\\${System.getProperty("user.name")}\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+            "py",       // Python Launcher no Windows
+            "python3",  // Linux/Mac
+            "C:\\Python313\\python.exe",  // Instalação padrão Python 3.13
+            "C:\\Python312\\python.exe",  // Instalação padrão Python 3.12
+            "C:\\Python311\\python.exe",  // Instalação padrão Python 3.11
+            "python"    // Fallback genérico (último recurso)
+        )
+        
+        for (path in possiblePaths) {
+            try {
+                val process = ProcessBuilder(path, "--version")
+                    .redirectErrorStream(true)
+                    .start()
+                
+                val exitCode = process.waitFor()
+                if (exitCode == 0) {
+                    return path
+                }
+            } catch (e: Exception) {
+                // Continue tentando outros caminhos
+            }
+        }
+        
+        // Fallback para "python" se nada funcionar
+        return "python"
+    }
     
     /**
      * Encontra a raiz do projeto, mesmo quando executado de subdiretórios
@@ -81,6 +117,11 @@ class PythonBridge {
                 dir.mkdirs()
             }
         }
+        
+        // Debug: mostrar qual Python está sendo usado
+        println("PythonBridge inicializado:")
+        println("  Python executável: $pythonExecutable")
+        println("  Projeto root: ${baseDir.absolutePath}")
     }
     
     /**
