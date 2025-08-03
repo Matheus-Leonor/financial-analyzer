@@ -12,7 +12,9 @@
       "Bash(python test:*)",
       "Bash(where python)",
       "Bash(C:UsersmatheAppDataLocalProgramsPythonPython313python.exe --version)",
-      "Bash(\"C:\\Users\\mathe\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" --version)"
+      "Bash(\"C:\\Users\\mathe\\AppData\\Local\\Programs\\Python\\Python313\\python.exe\" --version)",
+      "Bash(mkdir:*)",
+      "Bash(npm init:*)"
     ],
     "deny": []
   }

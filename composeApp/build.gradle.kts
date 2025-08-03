@@ -31,6 +31,12 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+            implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+            implementation("org.jetbrains.exposed:exposed-core:0.50.1")
+            implementation("org.jetbrains.exposed:exposed-dao:0.50.1")
+            implementation("org.jetbrains.exposed:exposed-jdbc:0.50.1")
+            implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.50.1")
+            implementation("org.xerial:sqlite-jdbc:3.45.3.0")
         }
     }
 }

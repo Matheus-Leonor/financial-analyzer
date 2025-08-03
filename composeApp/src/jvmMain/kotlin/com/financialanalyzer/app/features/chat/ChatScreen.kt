@@ -17,7 +17,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -54,7 +53,7 @@ fun ChatScreen(
     LaunchedEffect(Unit) {
         val setupStatus = pythonBridge.checkPythonSetup()
         connectionStatus = if (setupStatus.available) {
-            "✅ Conectado ao Claude AI"
+            "✅ Conectado ao Agente"
         } else {
             "❌ ${setupStatus.message}"
         }
@@ -115,17 +114,17 @@ fun ChatScreen(
             ) {
                 if (messages.isEmpty()) {
                     item {
-                        ClaudeStyleEmptyState()
+                        EmptyState()
                     }
                 } else {
                     items(messages) { message ->
-                        ClaudeStyleMessage(message = message)
+                        Message(message = message)
                     }
                 }
                 
                 if (isLoading) {
                     item {
-                        ClaudeStyleTypingIndicator()
+                        TypingIndicator()
                     }
                 }
             }
@@ -135,7 +134,7 @@ fun ChatScreen(
         Box(
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            ClaudeStyleInputArea(
+            InputArea(
                 inputText = inputText,
                 onInputChange = { inputText = it },
                 onSendMessage = {
@@ -195,7 +194,7 @@ fun ChatScreen(
 }
 
 @Composable
-private fun ClaudeStyleEmptyState() {
+private fun EmptyState() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,7 +221,7 @@ private fun ClaudeStyleEmptyState() {
 }
 
 @Composable
-private fun ClaudeStyleMessage(message: ChatMessage) {
+private fun Message(message: ChatMessage) {
     SelectionContainer {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -266,7 +265,7 @@ private fun ClaudeStyleMessage(message: ChatMessage) {
 }
 
 @Composable
-private fun ClaudeStyleTypingIndicator() {
+private fun TypingIndicator() {
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -304,7 +303,7 @@ private fun ClaudeStyleTypingIndicator() {
 }
 
 @Composable
-private fun ClaudeStyleInputArea(
+private fun InputArea(
     inputText: String,
     onInputChange: (String) -> Unit,
     onSendMessage: () -> Unit,
@@ -334,7 +333,7 @@ private fun ClaudeStyleInputArea(
                     modifier = Modifier.weight(1f),
                     placeholder = {
                         Text(
-                            text = "Message Claude...",
+                            text = "Como posso ajudar você hoje?",
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
